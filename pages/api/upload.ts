@@ -6,6 +6,7 @@ import pdfParse from 'pdf-parse';
 import { openai } from '@ai-sdk/openai';
 import { embed } from 'ai';
 import { storeEmbedding } from '@/lib/pinecone';
+import { storeDocumentMetadata } from '@/lib/db';
 
 // Disable Next.js body parsing
 export const config = {
@@ -46,6 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     let text = '';
     let filename = file.originalFilename || 'unnamed';
+    let title = fields.title ? String(fields.title) : filename;
     if (file.mimetype === 'application/pdf') {
       const dataBuffer = await fs.readFile(file.filepath);
       const pdfData = await pdfParse(dataBuffer);
@@ -59,11 +61,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Clean up temporary file
     await fs.unlink(file.filepath);
 
-    // Chunk text to fit Pinecone limits (2GB total, ~40KB metadata per vector)
-    const chunks = chunkText(text);
+    // Generate unique document ID
     const documentId = `doc-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
-    // Generate embeddings for each chunk
+    // Store metadata in Neon PostgreSQL (default userId for now)
+    await storeDocumentMetadata(documentId, 'default-user', title, filename);
+
+    // Chunk text to fit Pinecone limits
+    const chunks = chunkText(text);
+
+    // Generate and store embeddings for each chunk
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
       const { embedding } = await embed({
@@ -73,19 +80,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Store embedding in Pinecone
       await storeEmbedding(`${documentId}-${i}`, chunk, embedding, {
-        title: fields.title ? String(fields.title) : filename,
+        title,
         filename,
       });
     }
 
     res.status(200).json({
-      message: 'File uploaded and embeddings stored successfully',
+      message: 'File uploaded, metadata and embeddings stored successfully',
       documentId,
       chunkCount: chunks.length,
       filename,
     });
   } catch (error) {
     console.error('Upload error:', error);
-    res.status(500).json({ error: 'Failed to process file or store embeddings' });
+    res.status(500).json({ error: 'Failed to process file or store data' });
   }
 }
