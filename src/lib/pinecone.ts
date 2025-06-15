@@ -1,5 +1,5 @@
 // src/lib/pinecone.ts
-import { Pinecone } from '@pinecone-database/pinecone';
+import { Pinecone, PineconeRecord } from '@pinecone-database/pinecone';
 
 const pinecone = new Pinecone({
   apiKey: process.env.PINECONE_API_KEY!,
@@ -29,6 +29,6 @@ export async function storeEmbedding(
   }
 }
 
-export async function getIndex() {
+export function getIndex() {
   return pinecone.index(indexName);
 }
