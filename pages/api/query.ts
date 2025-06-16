@@ -3,7 +3,18 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { openai } from '@ai-sdk/openai';
 import { embed, generateText } from 'ai';
 import { getIndex } from '@/lib/pinecone';
-import { Document, VectorStoreIndex, Settings, BaseLLM, type LLMCompletionParamsStreaming, type LLMCompletionParamsNonStreaming, type CompletionResponse, type MessageContent, type LLMMetadata } from 'llamaindex';
+import {
+  Document,
+  VectorStoreIndex,
+  Settings,
+  BaseLLM,
+  type LLMCompletionParamsStreaming,
+  type LLMCompletionParamsNonStreaming,
+  type CompletionResponse,
+  type MessageContent,
+  type LLMMetadata,
+} from 'llamaindex';
+import { OpenAIEmbedding } from '@llamaindex/openai';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -16,7 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Configure LlamaIndex Settings with custom LLM
+    // Configure LlamaIndex Settings with custom LLM and embedModel
     Settings.llm = new (class extends BaseLLM {
       get metadata(): LLMMetadata {
         return {
@@ -62,6 +73,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     })();
 
+    // Set the embedding model for LlamaIndex
+    Settings.embedModel = new OpenAIEmbedding({ model: 'text-embedding-3-large' });
+
     // Generate embedding for the query
     const { embedding } = await embed({
       model: openai.embedding('text-embedding-3-large'),
@@ -106,7 +120,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const response = await queryEngine.query({ query });
 
     // Format response with citations
-    const answer = response.response;
+    const answer = response.toString();
     const sources = documents.map((doc) => ({
       title: doc.metadata.title,
       filename: doc.metadata.filename,

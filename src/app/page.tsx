@@ -7,9 +7,11 @@ export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState<string>('');
   const [query, setQuery] = useState<string>('');
-  const [uploadResponse, setUploadResponse] = useState<string | null>(null);
-  const [queryResponse, setQueryResponse] = useState<{ answer: string; sources: any[] } | null>(null);
+  const [uploadResponse, setUploadResponse] = useState<{ message: string; documentId: string; chunkCount: number; filename: string } | null>(null);
+  const [queryResponse, setQueryResponse] = useState<{ answer: string; sources: { title: string; filename: string }[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [isQuerying, setIsQuerying] = useState<boolean>(false);
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,6 +19,9 @@ export default function Home() {
       setError('Please select a file');
       return;
     }
+
+    setIsUploading(true);
+    setError(null);
 
     const formData = new FormData();
     formData.append('file', file);
@@ -29,15 +34,16 @@ export default function Home() {
       });
       const data = await res.json();
       if (res.ok) {
-        setUploadResponse(
-          `Uploaded: ${data.filename}\nDocument ID: ${data.documentId}\nChunks: ${data.chunkCount}`
-        );
-        setError(null);
+        setUploadResponse(data);
+        setFile(null);
+        setTitle('');
       } else {
-        setError(data.error);
+        setError(data.error || 'Upload failed');
       }
     } catch (err) {
       setError('Upload failed');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -48,6 +54,9 @@ export default function Home() {
       return;
     }
 
+    setIsQuerying(true);
+    setError(null);
+
     try {
       const res = await fetch('/api/query', {
         method: 'POST',
@@ -57,68 +66,105 @@ export default function Home() {
       const data = await res.json();
       if (res.ok) {
         setQueryResponse(data);
-        setError(null);
+        setQuery('');
       } else {
-        setError(data.error);
+        setError(data.error || 'Query failed');
       }
     } catch (err) {
       setError('Query failed');
+    } finally {
+      setIsQuerying(false);
     }
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <h1 className="text-4xl font-bold mb-4">RAG Knowledge Base</h1>
-      <div className="flex flex-col gap-8 w-full max-w-md">
-        {/* Upload Form */}
-        <form onSubmit={handleUpload} className="flex flex-col gap-4">
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Document Title"
-            className="border p-2"
-          />
-          <input
-            type="file"
-            accept=".pdf,.txt"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
-            className="border p-2"
-          />
-          <button type="submit" className="bg-blue-500 text-white p-2 rounded">
-            Upload
-          </button>
-        </form>
-        {uploadResponse && <pre className="mt-4 text-sm">{uploadResponse}</pre>}
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center p-4 sm:p-6 lg:p-8">
+      {/* Header */}
+      <header className="text-center mb-8">
+        <h1 className="text-3xl sm:text-4xl font-bold text-primary">RAG Knowledge Base</h1>
+        <p className="text-secondary mt-2">Upload documents and query your knowledge base with AI-powered insights.</p>
+      </header>
 
-        {/* Query Form */}
-        <form onSubmit={handleQuery} className="flex flex-col gap-4">
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Ask a question"
-            className="border p-2"
-          />
-          <button type="submit" className="bg-green-500 text-white p-2 rounded">
-            Query
-          </button>
-        </form>
-        {queryResponse && (
-          <div className="mt-4 text-sm">
-            <p><strong>Answer:</strong> {queryResponse.answer}</p>
-            <p><strong>Sources:</strong></p>
-            <ul>
-              {queryResponse.sources.map((source, i) => (
-                <li key={i}>
-                  {source.title} ({source.filename})
-                </li>
-              ))}
-            </ul>
+      {/* Main Content */}
+      <main className="w-full max-w-3xl space-y-8">
+        {/* Upload Section */}
+        <section className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-xl font-semibold mb-4">Upload Document</h2>
+          <form onSubmit={handleUpload} className="space-y-4">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Document Title"
+              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <input
+              type="file"
+              accept=".pdf,.txt"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              className="w-full p-2 border border-gray-300 rounded-md"
+            />
+            <button
+              type="submit"
+              disabled={isUploading}
+              className={`w-full bg-primary text-white p-2 rounded-md hover:bg-blue-600 transition disabled:bg-gray-400 disabled:cursor-not-allowed`}
+            >
+              {isUploading ? 'Uploading...' : 'Upload'}
+            </button>
+          </form>
+          {uploadResponse && (
+            <div className="mt-4 p-4 bg-success/10 border border-success rounded-md">
+              <p className="text-success">
+                Uploaded: {uploadResponse.filename}<br />
+                Document ID: {uploadResponse.documentId}<br />
+                Chunks: {uploadResponse.chunkCount}
+              </p>
+            </div>
+          )}
+        </section>
+
+        {/* Query Section */}
+        <section className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-xl font-semibold mb-4">Ask a Question</h2>
+          <form onSubmit={handleQuery} className="space-y-4">
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="e.g., What are AcmeTech’s products?"
+              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <button
+              type="submit"
+              disabled={isQuerying}
+              className={`w-full bg-primary text-white p-2 rounded-md hover:bg-blue-600 transition disabled:bg-gray-400 disabled:cursor-not-allowed`}
+            >
+              {isQuerying ? 'Querying...' : 'Query'}
+            </button>
+          </form>
+          {queryResponse && (
+            <div className="mt-4 p-4 bg-success/10 border border-success rounded-md">
+              <h3 className="text-lg font-semibold text-success">Answer</h3>
+              <p className="mt-2">{queryResponse.answer}</p>
+              <h3 className="text-lg font-semibold mt-4 text-success">Sources</h3>
+              <ul className="list-disc pl-5 mt-2">
+                {queryResponse.sources.map((source, i) => (
+                  <li key={i} className="text-secondary">
+                    {source.title} ({source.filename})
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
+
+        {/* Error Message */}
+        {error && (
+          <div className="p-4 bg-error/10 border border-error rounded-md">
+            <p className="text-error">{error}</p>
           </div>
         )}
-        {error && <p className="mt-4 text-red-500">{error}</p>}
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
