@@ -1,4 +1,3 @@
-// tailwind.config.js
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -9,10 +8,13 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: '#1D4ED8', // Blue for buttons
-        secondary: '#6B7280', // Gray for text
-        error: '#DC2626', // Red for errors
-        success: '#10B981', // Green for success
+        primary: '#1D4ED8',
+        secondary: '#6B7280',
+        error: '#DC2626', // Red for dark mode buttons
+        'error-dark': '#B91C1C', // Darker red for hover
+        success: '#10B981',
+        dark: '#111827', // Dark gray for text in light mode
+        black: '#000000', // Pure black for inputs in dark mode
       },
     },
   },

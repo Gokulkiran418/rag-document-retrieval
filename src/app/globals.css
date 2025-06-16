@@ -1,27 +1,25 @@
-/* src/app/globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Light mode */
-.bg-light {
-  background-color: #f0f0f0;
-  color: #000;
-}
-
-/* Dark mode */
-.bg-dark {
-  background-color: #1a1a1a;
-  color: #fff;
-}
-
-/* Animated background */
-.background {
-  background: linear-gradient(45deg, #1D4ED8, #9333EA);
+/* Light mode gradient */
+.bg-light-gradient {
+  background: linear-gradient(45deg, #4af3ff, #4197ff);
   background-size: 200% 200%;
 }
 
-/* Ensure smooth transitions */
+/* Dark mode gradient */
+.bg-dark-gradient {
+  background: linear-gradient(45deg, #FF4500, #000000);
+  background-size: 200% 200%;
+}
+
+/* Custom black shade for dark mode cards and toggle button */
+.bg-black-900 {
+  background-color: #1C2526;
+}
+
+/* Smooth transitions for theme changes */
 body {
-  transition: background-color 0.5s ease, color 0.5s ease;
+  transition: color 0.5s ease;
 }
