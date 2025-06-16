@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -16,6 +16,7 @@ export default function Home() {
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [isQuerying, setIsQuerying] = useState<boolean>(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const responseSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Initial animations
@@ -23,18 +24,11 @@ export default function Home() {
     gsap.from('.upload-section', { opacity: 0, x: -100, duration: 1, delay: 0.5, ease: 'power2.out' });
     gsap.from('.query-section', { opacity: 0, x: 100, duration: 1, delay: 0.5, ease: 'power2.out' });
 
-    // Scroll-triggered animation for response section
-    ScrollTrigger.create({
-      trigger: '.response-section',
-      start: 'top 80%',
-      onEnter: () => gsap.from('.response-section', { opacity: 0, y: 50, duration: 1, ease: 'power2.out' }),
-    });
-
     // Animated background
     gsap.to('.background', {
-      backgroundPosition: '100% 100%',
-      duration: 10,
-      repeat: -1,
+      backgroundPosition: '200% 200%',
+      duration: 15,
+      repeat: -3,
       yoyo: true,
       ease: 'linear',
     });
@@ -44,13 +38,20 @@ export default function Home() {
     mm.add('(max-width: 768px)', () => {
       gsap.from('.upload-section, .query-section', { opacity: 0, y: 50, duration: 0.8, stagger: 0.2 });
     });
+
+    return () => mm.revert();
   }, []);
+
+  useEffect(() => {
+    if (queryResponse && responseSectionRef.current) {
+      gsap.fromTo(responseSectionRef.current, { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 1, ease: 'power2.out' });
+    }
+  }, [queryResponse]);
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
     gsap.to('body', {
-      backgroundColor: newTheme === 'light' ? '#f0f0f0' : '#1a1a1a',
       color: newTheme === 'light' ? '#000' : '#fff',
       duration: 0.5,
       ease: 'power2.inOut',
@@ -78,7 +79,14 @@ export default function Home() {
         setUploadResponse(data);
         setFile(null);
         setTitle('');
-        gsap.to('.progress-bar', { width: '100%', duration: 1, ease: 'power2.out', onComplete: () => gsap.to('.progress-bar', { width: 0 }) });
+        gsap.to('.progress-bar', {
+          width: '100%',
+          duration: 1,
+          ease: 'power2.out',
+          onComplete: () => {
+            gsap.to('.progress-bar', { width: 0, duration: 0.3, ease: 'power2.in' });
+          },
+        });
       } else {
         setError(data.error || 'Upload failed');
       }
@@ -109,7 +117,6 @@ export default function Home() {
       if (res.ok) {
         setQueryResponse(data);
         setQuery('');
-        gsap.fromTo('.response-section', { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 1, ease: 'power2.out' });
       } else {
         setError(data.error || 'Query failed');
       }
@@ -121,9 +128,9 @@ export default function Home() {
   };
 
   return (
-    <div className={`min-h-screen flex flex-col items-center p-4 sm:p-6 lg:p-8 ${theme === 'light' ? 'bg-light' : 'bg-dark'}`}>
+    <div className={`min-h-screen flex flex-col items-center p-4 sm:p-6 lg:p-8 ${theme}`}>
       {/* Animated Background */}
-      <div className="background absolute inset-0 z-[-1] bg-gradient-to-r from-blue-500 to-purple-500" />
+      <div className="background fixed inset-0 z-[-1]" />
 
       {/* Header */}
       <header className="header text-center mb-8">
@@ -140,7 +147,7 @@ export default function Home() {
       {/* Main Content */}
       <main className="w-full max-w-3xl space-y-8">
         {/* Upload Section */}
-        <section className="upload-section bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+        <section className="upload-section bg-white dark:bg-gray-900 p-6 rounded-lg shadow-md">
           <h2 className="text-xl font-semibold mb-4">Upload Document</h2>
           <form onSubmit={handleUpload} className="space-y-4">
             <input
@@ -148,25 +155,25 @@ export default function Home() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Document Title"
-              className="w-full p-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:text-white hover:opacity-80 transition-opacity"
+              className="w-full p-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white hover:opacity-80 transition-opacity"
             />
             <input
               type="file"
               accept=".pdf,.txt"
               onChange={(e) => setFile(e.target.files?.[0] || null)}
-              className="w-full p-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:text-white hover:opacity-80 transition-opacity"
+              className="w-full p-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white hover:opacity-80 transition-opacity"
             />
             <div className="progress-bar h-2 bg-blue-500 w-0 rounded"></div>
             <button
               type="submit"
               disabled={isUploading}
-              className="w-full bg-blue-500 text-white p-2 rounded-md hover:scale-105 transition-transform"
+              className="w-full bg-blue-500 text-white p-2 rounded-md hover:scale-105 transition-transform disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {isUploading ? 'Uploading...' : 'Upload'}
             </button>
           </form>
           {uploadResponse && (
-            <div className="mt-4 p-4 bg-green-100 border border-green-400 rounded-md">
+            <div className="mt-4 p-4 bg-green-100 dark:bg-green-900 border border-green-400 dark:border-green-600 rounded-md">
               <p>
                 Uploaded: {uploadResponse.filename}<br />
                 Document ID: {uploadResponse.documentId}<br />
@@ -177,7 +184,7 @@ export default function Home() {
         </section>
 
         {/* Query Section */}
-        <section className="query-section bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+        <section className="query-section bg-white dark:bg-gray-900 p-6 rounded-lg shadow-md">
           <h2 className="text-xl font-semibold mb-4">Ask a Question</h2>
           <form onSubmit={handleQuery} className="space-y-4">
             <input
@@ -185,18 +192,18 @@ export default function Home() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="e.g., What are AcmeTech’s products?"
-              className="w-full p-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:text-white hover:opacity-80 transition-opacity"
+              className="w-full p-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white hover:opacity-80 transition-opacity"
             />
             <button
               type="submit"
               disabled={isQuerying}
-              className="w-full bg-blue-500 text-white p-2 rounded-md hover:scale-105 transition-transform"
+              className="w-full bg-blue-500 text-white p-2 rounded-md hover:scale-105 transition-transform disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {isQuerying ? 'Querying...' : 'Query'}
             </button>
           </form>
           {queryResponse && (
-            <div className="response-section mt-4 p-4 bg-green-100 border border-green-400 rounded-md">
+            <div ref={responseSectionRef} className="response-section mt-4 p-4 bg-green-100 dark:bg-green-900 border border-green-400 dark:border-green-600 rounded-md">
               <h3 className="text-lg font-semibold">Answer</h3>
               <p className="mt-2">{queryResponse.answer}</p>
               <h3 className="text-lg font-semibold mt-4">Sources</h3>
@@ -213,7 +220,7 @@ export default function Home() {
 
         {/* Error Message */}
         {error && (
-          <div className="p-4 bg-red-100 border border-red-400 rounded-md">
+          <div className="p-4 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-600 rounded-md">
             <p>{error}</p>
           </div>
         )}
