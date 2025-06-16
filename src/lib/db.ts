@@ -1,30 +1,30 @@
-// src/lib/db.ts
-import { drizzle } from 'drizzle-orm/vercel-postgres';
-import { sql } from '@vercel/postgres';
-import { documents } from '@/lib/schema';
+import { drizzle } from 'drizzle-orm/neon-http';
+import { neon } from '@neondatabase/serverless';
+import * as schema from './schema'; // Adjust path to your schema file
 
-const db = drizzle(sql);
+const sql = neon(process.env.POSTGRES_URL!); // Ensure env variable is set
+export const db = drizzle(sql, { schema });
 
-export async function storeDocumentMetadata(
-  documentId: string,
-  userId: string,
-  title: string,
-  filename: string
-) {
+export async function storeDocumentMetadata({
+  documentId,
+  title,
+  filename,
+}: {
+  documentId: string;
+  title: string;
+  filename: string;
+}) {
   try {
-    const [doc] = await db
-      .insert(documents)
+    await db
+      .insert(schema.documents)
       .values({
-        documentId,
-        userId,
+        document_id: documentId,
         title,
         filename,
       })
-      .returning();
-    console.log(`Stored metadata for document ${documentId}`);
-    return doc;
+      .execute();
   } catch (error) {
-    console.error('Error storing metadata:', error);
-    throw new Error('Failed to store document metadata');
+    console.error("Error storing metadata:", error);
+    throw new Error("Failed to store document metadata");
   }
 }

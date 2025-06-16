@@ -1,4 +1,3 @@
-// pages/api/upload.ts
 import { NextApiRequest, NextApiResponse } from 'next';
 import formidable, { File } from 'formidable';
 import fs from 'fs/promises';
@@ -28,7 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-
+  
   const form = formidable({ multiples: false, maxFileSize: 10 * 1024 * 1024 }); // 10MB limit
   try {
     const { fields, files } = await new Promise<{ fields: formidable.Fields; files: formidable.Files }>(
@@ -64,11 +63,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Generate unique document ID
     const documentId = `doc-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
-    // Store metadata in Neon PostgreSQL (default userId for now)
-    await storeDocumentMetadata(documentId, 'default-user', title, filename);
-
     // Chunk text to fit Pinecone limits
     const chunks = chunkText(text);
+
+    // Store metadata in Neon PostgreSQL (without chunkCount)
+    await storeDocumentMetadata({
+      documentId,
+      title,
+      filename,
+    });
 
     // Generate and store embeddings for each chunk
     for (let i = 0; i < chunks.length; i++) {
