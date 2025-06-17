@@ -180,127 +180,126 @@ export default function RagPage() {
   };
 
   return (
-    <div className="relative p-6 lg:p-8 min-h-screen overflow-hidden">
+  <div className="relative p-6 lg:p-8 min-h-screen overflow-hidden">
+    <div
+      ref={bgRef}
+      className="absolute inset-0 rounded-lg"
+      style={{ zIndex: -1 }}
+    />
+
+    {(isUploading || isQuerying) && (
       <div
-        ref={bgRef}
-        className="absolute inset-0 rounded-lg"
-        style={{ zIndex: -1 }}
+        ref={spinnerRef}
+        className="fixed top-1/2 left-1/2 w-12 h-12 border-4 rounded-full transform -translate-x-1/2 -translate-y-1/2 border-t-blue-500 border-gray-300"
       />
+    )}
 
-      {(isUploading || isQuerying) && (
-        <div
-          ref={spinnerRef}
-          className="fixed top-1/2 left-1/2 w-12 h-12 border-4 rounded-full transform -translate-x-1/2 -translate-y-1/2 border-t-blue-500 border-gray-300"
-        />
-      )}
-<div ref={cardRef} className="relative z-10 max-w-4xl mx-auto space-y-8">
-  <h1 className="text-4xl font-bold dark:text-white text-center">
-    RAG Knowledge Base
-  </h1>
+    <div ref={cardRef} className="relative z-10 max-w-6xl mx-auto space-y-8">
+      <h1 className="text-4xl font-bold dark:text-white text-center">
+        RAG Knowledge Base
+      </h1>
 
-  {/* Upload Section */}
-  <section className="p-6 rounded-lg shadow-md bg-cardcolor-light dark:bg-cardcolor-dark space-y-4 text-text-light dark:text-text-dark">
-    <h2 className="text-xl font-semibold">Upload Document</h2>
-    <form onSubmit={handleUpload} className="space-y-4">
-      <input
-        type="text"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Document Title"
-        className="w-full p-2 border rounded-md bg-white text-black dark:bg-zinc-800 dark:text-white dark:border-zinc-700"
-      />
-      <input
-        type="file"
-        accept=".pdf,.txt"
-        onChange={(e) => setFile(e.target.files?.[0] || null)}
-        className="w-full p-2 border rounded-md"
-      />
-      <div
-        ref={progressBarRef}
-        className="h-2 bg-green-500 w-0 rounded"
-      />
-      <button
-        type="submit"
-        disabled={isUploading}
-        className="w-full p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:bg-gray-400 dark:bg-blue-700 dark:hover:bg-blue-800"
-      >
-        {isUploading ? "Uploading..." : "Upload"}
-      </button>
+      {/* Upload + Query Side-by-Side Container */}
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Upload Section */}
+        <section className="flex-1 p-6 rounded-lg shadow-md bg-cardcolor-light/10 dark:bg-cardcolor-dark/10 space-y-4 text-text-light dark:text-text-dark">
 
-      {/* Upload Spinner Below Button */}
-      {isUploading && (
-        <div className="flex justify-center mt-4">
-          <div
-            ref={spinnerRef}
-            className="w-8 h-8 border-4 border-t-blue-500 border-gray-300 rounded-full animate-spin"
-          />
-        </div>
-      )}
-    </form>
-      {uploadResponse && (
-        <div className="mt-4 p-4 bg-green-100 border border-green-500 rounded-md text-black">
-          <p>
-            Uploaded: {uploadResponse.filename}
-            <br />
-            Document ID: {uploadResponse.documentId}
-            <br />
-            Chunks: {uploadResponse.chunkCount}
-          </p>
-        </div>
-      )}
-  </section>
+          <h2 className="text-xl font-semibold">Upload Document</h2>
+          <form onSubmit={handleUpload} className="space-y-4">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Document Title"
+              className="w-full p-2 border rounded-md bg-white text-black dark:bg-zinc-800 dark:text-white dark:border-zinc-700"
+            />
+            <input
+              type="file"
+              accept=".pdf,.txt"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              className="w-full p-2 border rounded-md"
+            />
+            <div ref={progressBarRef} className="h-2 bg-green-500 w-0 rounded" />
+            <button
+              type="submit"
+              disabled={isUploading}
+              className="w-full p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:bg-gray-400 dark:bg-blue-700 dark:hover:bg-blue-800"
+            >
+              {isUploading ? "Uploading..." : "Upload"}
+            </button>
 
-  {/* Query Section */}
-  <section className="p-6 rounded-lg shadow-md bg-cardcolor-light dark:bg-cardcolor-dark space-y-4 text-text-light dark:text-text-dark">
-    <h2 className="text-xl font-semibold">Ask a Question</h2>
-    <form onSubmit={handleQuery} className="space-y-4">
-      <input
-        type="text"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="e.g., What is the summary?"
-        className="w-full p-2 border rounded-md bg-white text-black dark:bg-zinc-800 dark:text-white dark:border-zinc-700"
-      />
-      <button
-        type="submit"
-        disabled={isQuerying}
-        className="w-full p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:bg-gray-400 dark:bg-blue-700 dark:hover:bg-blue-800"
-      >
-        {isQuerying ? "Querying..." : "Query"}
-      </button>
+            {isUploading && (
+              <div className="flex justify-center mt-4">
+                <div
+                  ref={spinnerRef}
+                  className="w-8 h-8 border-4 border-t-blue-500 border-gray-300 rounded-full animate-spin"
+                />
+              </div>
+            )}
+          </form>
 
-      {/* Query Spinner Below Button */}
-      {isQuerying && (
-        <div className="flex justify-center mt-4">
-          <div
-            className="w-8 h-8 border-4 border-t-blue-500 border-gray-300 rounded-full animate-spin"
-          />
-        </div>
-      )}
-    </form>
+          {uploadResponse && (
+            <div className="mt-4 p-4 bg-green-100 border border-green-500 rounded-md text-black">
+              <p>
+                Uploaded: {uploadResponse.filename}
+                <br />
+                Document ID: {uploadResponse.documentId}
+                <br />
+                Chunks: {uploadResponse.chunkCount}
+              </p>
+            </div>
+          )}
+        </section>
 
-   {queryResponse && (
-  <div className="response-section mt-4 p-4 bg-green-100 border border-green-500 rounded-md text-black">
-    <h3 className="text-lg font-semibold">Answer</h3>
-    <p>{queryResponse.answer}</p>
-    <h3 className="text-lg font-semibold mt-4">Sources</h3>
-    <ul className="list-disc pl-5 mt-2">
-      {queryResponse.sources.map((s, i) => (
-        <li key={i}>
-          {s.title} ({s.filename})
-        </li>
-      ))}
-    </ul>
-  </div>
-)}
-  </section>
+        {/* Query Section */}
+        <section className="flex-1 p-6 rounded-lg shadow-md bg-cardcolor-light/10 dark:bg-cardcolor-dark/10 space-y-4 text-text-light dark:text-text-dark">
+          <h2 className="text-xl font-semibold">Ask a Question</h2>
+          <form onSubmit={handleQuery} className="space-y-4">
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="e.g., What is the summary?"
+              className="w-full p-2 border rounded-md bg-white text-black dark:bg-zinc-800 dark:text-white dark:border-zinc-700"
+            />
+            <button
+              type="submit"
+              disabled={isQuerying}
+              className="w-full p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:bg-gray-400 dark:bg-blue-700 dark:hover:bg-blue-800"
+            >
+              {isQuerying ? "Querying..." : "Query"}
+            </button>
 
-        {error && (
-          <div className="p-4 bg-red-100 border border-red-500 rounded-md">
-            <p>{error}</p>
-          </div>
-        )}
+            {isQuerying && (
+              <div className="flex justify-center mt-4">
+                <div className="w-8 h-8 border-4 border-t-blue-500 border-gray-300 rounded-full animate-spin" />
+              </div>
+            )}
+          </form>
+
+          {queryResponse && (
+            <div className="response-section mt-4 p-4 bg-green-100 border border-green-500 rounded-md text-black">
+              <h3 className="text-lg font-semibold">Answer</h3>
+              <p>{queryResponse.answer}</p>
+              <h3 className="text-lg font-semibold mt-4">Sources</h3>
+              <ul className="list-disc pl-5 mt-2">
+                {queryResponse.sources.map((s, i) => (
+                  <li key={i}>
+                    {s.title} ({s.filename})
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
       </div>
+
+      {error && (
+        <div className="p-4 bg-red-100 border border-red-500 rounded-md">
+          <p>{error}</p>
+        </div>
+      )}
     </div>
-  );
+  </div>
+);
 }
