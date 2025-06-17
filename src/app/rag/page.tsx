@@ -10,10 +10,11 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useTheme } from "../../context/ThemeContext";
 
+type Tween = gsap.core.Tween;
 gsap.registerPlugin(ScrollTrigger);
 
 export default function RagPage() {
-  const { theme } = useTheme();
+  const { theme, gradientColors } = useTheme();
 
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
@@ -36,31 +37,40 @@ export default function RagPage() {
   const cardRef = useRef<HTMLDivElement>(null);
   const spinnerRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
+  const tweenRef = useRef<Tween | null>(null);
 
-  // Background animation
+  // Background animation with kill/cleanup
   useEffect(() => {
-    if (bgRef.current) {
-      const gradientClass =
-        theme === "light"
-          ? ["#93C5FD", "#F472B6", "#D1D5DB"]
-          : ["#1E293B", "#4C51BF", "#0F172A"];
+    if (!bgRef.current) return;
 
-      gsap.to(bgRef.current, {
-        background: `linear-gradient(135deg, ${gradientClass.join(", ")})`,
-        duration: 0,
-      });
+    // Kill any existing tween
+    tweenRef.current?.kill();
 
-      gsap.to(bgRef.current, {
-        backgroundPosition: "200% 200%",
-        duration: 10,
-        repeat: -1,
-        yoyo: true,
-        ease: "sine.inOut",
-      });
-    }
-  }, [theme]);
+    // Set gradient, size, and start position
+    bgRef.current.style.background = `linear-gradient(135deg, ${gradientColors.join(
+      ", "
+    )})`;
+    bgRef.current.style.backgroundSize = "200% 200%";
+    bgRef.current.style.backgroundPosition = "0% 0%";
 
-  // Scroll reveal
+    // Start the tween and save its reference
+    tweenRef.current = gsap.to(bgRef.current, {
+      backgroundPosition: "200% 200%",
+      duration: 10,
+      repeat: -1,
+      yoyo: true,
+      ease: "sine.inOut",
+      overwrite: "auto",
+    });
+
+    // Cleanup on unmount or next theme change
+    return () => {
+      tweenRef.current?.kill();
+      tweenRef.current = null;
+    };
+  }, [gradientColors]);
+
+  // Scroll reveal for cards
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
       if (cardRef.current) {
@@ -81,7 +91,6 @@ export default function RagPage() {
           }
         );
       }
-
       ScrollTrigger.refresh();
     }, cardRef);
 
@@ -124,13 +133,14 @@ export default function RagPage() {
         setFile(null);
         setTitle("");
         gsap.to(progressBarRef.current, {
-          width: "100%",
-          duration: 1,
-          ease: "power2.out",
-          onComplete: () => {
-            gsap.to(progressBarRef.current!, { width: 0, duration: 0.3 });
-          },
-        });
+        width: "100%",
+        duration: 1,
+        ease: "power2.out",
+        onComplete: () => {
+          gsap.to(progressBarRef.current!, { width: 0, duration: 0.3 });
+        },
+      });
+
       } else {
         setError(data.error || "Upload failed");
       }
@@ -184,7 +194,7 @@ export default function RagPage() {
       <div
         ref={bgRef}
         className="absolute inset-0 rounded-lg"
-        style={{ zIndex: -1, backgroundSize: "200% 200%" }}
+        style={{ zIndex: -1 }}
       />
 
       {/* Spinner */}

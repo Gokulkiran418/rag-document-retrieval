@@ -1,47 +1,42 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 
 type Theme = "light" | "dark";
 interface ThemeContextValue {
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  gradientColors: string[];
 }
 
-const ThemeContext = createContext<ThemeContextValue>({
-  theme: "light",
-  setTheme: () => {},
-});
+const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const [theme, setTheme] = useState<Theme>("light");
 
-  // Initialize theme from localStorage or OS preference
   useEffect(() => {
-    if (typeof window === "undefined") return;
     const saved = localStorage.getItem("theme") as Theme | null;
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    setTheme(saved || (prefersDark ? "dark" : "light"));
+    if (saved) setTheme(saved);
   }, []);
 
-  // Persist theme changes
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("theme", theme);
-    }
+    localStorage.setItem("theme", theme);
   }, [theme]);
 
+  const gradientColors =
+    theme === "light"
+      ? ["#93C5FD", "#F472B6", "#D1D5DB"]
+      : ["#1E293B", "#4C51BF", "#0F172A"];
+
   return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
-      <div
-        className={`min-h-screen transition-colors duration-300 ${
-          theme === "light" ? "bg-gray-50 text-gray-900" : "bg-gray-900 text-gray-50"
-        }`}
-      >
-        {children}
-      </div>
+    <ThemeContext.Provider value={{ theme, setTheme, gradientColors }}>
+      {children}
     </ThemeContext.Provider>
   );
 };
 
-export const useTheme = () => useContext(ThemeContext);
+export const useTheme = () => {
+  const ctx = useContext(ThemeContext);
+  if (!ctx) throw new Error("useTheme must be used within ThemeProvider");
+  return ctx;
+};

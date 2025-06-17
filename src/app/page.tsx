@@ -1,64 +1,56 @@
 "use client";
 
-import Link from "next/link";
-import gsap from "gsap";
 import { useEffect, useRef } from "react";
+import gsap from "gsap";
 import { useTheme } from "../context/ThemeContext";
 
+type Tween = gsap.core.Tween;
+
 export default function HomePage() {
-  const { theme } = useTheme();
-  const contentRef = useRef<HTMLDivElement>(null);
+  const { theme, gradientColors } = useTheme();
   const bgRef = useRef<HTMLDivElement>(null);
-
+  const contentRef = useRef<HTMLDivElement>(null);
+  const tweenRef = useRef<Tween | null>(null);
   useEffect(() => {
-    if (bgRef.current) {
-      gsap.to(bgRef.current, {
-        backgroundPosition: "300% 300%",
-        duration: 8,
-        repeat: -1,
-        yoyo: true,
-        ease: "sine.inOut",
-      });
-    }
+  if (!bgRef.current) return;
 
-    if (contentRef.current) {
-      gsap.fromTo(
-        Array.from(contentRef.current.children),
-        { opacity: 0, y: 40 },
-        { opacity: 1, y: 0, duration: 0.8, stagger: 0.25, ease: "power3.out" }
-      );
-    }
-  }, []);
+  // Kill any existing tween
+  tweenRef.current?.kill();
 
-  const gradientClass =
-    theme === "light"
-      ? "from-blue-600 via-fuchsia-500 to-indigo-500"
-      : "from-gray-800 via-indigo-900 to-black";
+  // Set up the background gradient
+  bgRef.current.style.background = `linear-gradient(135deg, ${gradientColors.join(", ")})`;
+  bgRef.current.style.backgroundSize = "400% 400%";
+  bgRef.current.style.backgroundPosition = "0% 0%";
+
+  // Start the tween and save its reference
+  tweenRef.current = gsap.to(bgRef.current, {
+    backgroundPosition: "200% 200%",
+    duration: 15,
+    repeat: -1,
+    yoyo: true,
+    ease: "sine.inOut",
+    overwrite: "auto",
+  });
+
+  // ✅ Clean up on unmount or theme change
+  return () => {
+    tweenRef.current?.kill();
+  };
+}, [gradientColors]);
 
   return (
-    <div className={`relative overflow-hidden ${theme === "light" ? 'bg-bg-light' : 'bg-bg-dark'}`}>
-      <div
-        ref={bgRef}
-        className={`absolute inset-0 bg-gradient-to-br ${gradientClass} opacity-30 blur-sm`}
-        style={{ backgroundSize: "400% 400%", zIndex: -1 }}
-      />
+    <div className="relative min-h-screen overflow-hidden flex items-center justify-center px-6 py-16">
+      <div ref={bgRef} className="absolute inset-0 -z-10 rounded-lg" />
       <div
         ref={contentRef}
-        className={`relative z-10 flex flex-col items-center justify-center px-6 py-16 text-center space-y-10 min-h-screen ${
-          theme === "light" ? 'text-text-light' : 'text-text-dark'
-        }`}
+        className={`relative z-10 max-w-4xl text-center ${
+          theme === "light" ? "text-gray-800" : "text-gray-100"
+        } space-y-6`}
       >
-        <h1 className="text-5xl font-bold">Welcome to RAG Knowledge Base</h1>
-        <p className="text-xl max-w-2xl">
-          Upload documents and query your custom knowledge base with Retrieval-Augmented Generation (RAG).
+        <h1 className="text-5xl font-bold">Welcome to the RAG Knowledge Base</h1>
+        <p className="text-lg">
+          Upload documents and query your custom knowledge base with RAG.
         </p>
-        <Link
-          href="/rag"
-          className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 transform transition hover:scale-105"
-        >
-          Go to RAG Page
-        </Link>
-        {/* Rest of your content */}
       </div>
     </div>
   );
