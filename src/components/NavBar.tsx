@@ -2,16 +2,33 @@
 
 import Link from "next/link";
 import { useTheme } from "../context/ThemeContext";
+import { useLayoutEffect, useRef } from "react";
+import gsap from "gsap";
+
 
 export default function NavBar() {
   const { theme, setTheme } = useTheme();
+  const navRef = useRef<HTMLDivElement>(null);
+
+    useLayoutEffect(() => {
+    if (navRef.current) {
+      gsap.fromTo(
+        navRef.current,
+        { y: -50, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.6, ease: "power2.out" }
+      );
+    }
+  }, []);
 
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light");
   };
+  
+
 
   return (
-    <nav
+     <nav
+      ref={navRef}
       className={`p-4 shadow-md transition-colors duration-300 ${
         theme === "light" ? "bg-gray-100 text-gray-800" : "bg-gray-800 text-gray-200"
       }`}
