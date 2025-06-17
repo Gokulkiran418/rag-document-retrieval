@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 
 type Theme = "light" | "dark";
+
 interface ThemeContextValue {
   theme: Theme;
   setTheme: (theme: Theme) => void;
@@ -20,13 +21,14 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
     localStorage.setItem("theme", theme);
   }, [theme]);
 
   const gradientColors =
     theme === "light"
-      ? ["#93C5FD", "#F472B6", "#D1D5DB"]
-      : ["#1E293B", "#4C51BF", "#0F172A"];
+      ? ["#E0F9B5", "#BBDED6", "#AA96DA"]
+      : ["#0A2647", "#000000", "#950101"];
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, gradientColors }}>

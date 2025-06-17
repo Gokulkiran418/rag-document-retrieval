@@ -16,6 +16,10 @@ module.exports = {
         'bg-dark': '#0F172A', // Darker background
         success: '#10B981',
         error: '#DC2626',
+        cardcolor: {
+          light: '#E4F9F5',
+          dark: '#222831',
+        },
         'text-light': '#111827',
         'text-dark': '#E5E7EB', // Lighter text for dark mode contrast
       },
