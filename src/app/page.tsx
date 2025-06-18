@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { useTheme } from "../context/ThemeContext";
 import { motion } from "framer-motion";
+import Image from 'next/image';
 
 type Tween = gsap.core.Tween;
 
@@ -92,20 +93,23 @@ return (
 
   {/* Right Card */}
       <motion.div
-          initial={{ opacity: 0, x: 40 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 1, ease: "easeOut" }}
-          className="p-6 bg-cardcolor-light dark:bg-card-glass-dark dark:backdrop-blur-md rounded-lg shadow-md space-y-4 text-text-light dark:text-white dark:border dark:border-[#1e2a3a]/60 dark:shadow-[0_0_12px_2px_rgba(149,1,1,0.2)]"
-        >
-          <h2 className="text-xl font-semibold mb-4">Workflow Diagram</h2>
-          <div className="w-full h-48 border-secondary flex items-center justify-center text-secondary">
-            <img
-              src="/images/workflow.png"
-              alt="Workflow Diagram"
-              className="w-full h-full object-contain"
-            />
-          </div>
-        </motion.div>
+        initial={{ opacity: 0, x: 40 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 1, ease: "easeOut" }}
+        className="p-6 bg-cardcolor-light dark:bg-card-glass-dark dark:backdrop-blur-md rounded-lg shadow-md space-y-4 text-text-light dark:text-white dark:border dark:border-[#1e2a3a]/60 dark:shadow-[0_0_12px_2px_rgba(149,1,1,0.2)]"
+      >
+        <h2 className="text-xl font-semibold mb-4">Workflow Diagram</h2>
+        
+        <div className="w-full h-48 border-secondary flex items-center justify-center text-secondary relative">
+          <Image
+            src="/images/workflow.png"
+            alt="Workflow Diagram"
+            fill
+            className="object-contain"
+            priority // optional: helps with LCP optimization
+          />
+        </div>
+      </motion.div>
       </div>
 
         </div>

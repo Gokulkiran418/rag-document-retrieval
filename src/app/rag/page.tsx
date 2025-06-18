@@ -18,7 +18,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 const MAX_QUERIES_PER_DAY = 5;
 
 export default function RagPage() {
-  const { theme, gradientColors } = useTheme();
+  const { gradientColors } = useTheme();
 
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
