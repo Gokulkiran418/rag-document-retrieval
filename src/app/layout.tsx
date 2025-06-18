@@ -13,17 +13,44 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   }, []);
 
   return (
-    <html lang="en" className="scroll-smooth">
-        <head>
+    // suppressHydrationWarning lets React ignore the initial class mismatch
+    <html lang="en" suppressHydrationWarning>
+      <head>
         <title>RAG Knowledge Base</title>
-        <meta name="description" content="A portfolio project to showcase RAG using Pinecone, OpenAI, and Next.js." />
+        <meta
+          name="description"
+          content="A portfolio project to showcase RAG using Pinecone, OpenAI, and Next.js."
+        />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+        {/* Inject theme class before React hydration */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function () {
+                try {
+                  var theme = localStorage.getItem('theme');
+                  if (!theme) {
+                    theme = window.matchMedia('(prefers-color-scheme: dark)').matches
+                      ? 'dark'
+                      : 'light';
+                  }
+                  document.documentElement.classList.add(theme);
+                } catch (e) {
+                  console.error(e);
+                }
+              })();
+            `,
+          }}
+        />
       </head>
-      <body>
-        <ThemeProvider >
+      <body className="scroll-smooth">
+        <ThemeProvider>
           <NavBar />
           <main className="relative z-10 overflow-x-hidden">
-            {mounted ? children : (
+            {mounted ? (
+              children
+            ) : (
               <div className="min-h-screen flex items-center justify-center text-gray-500">
                 Loading...
               </div>
