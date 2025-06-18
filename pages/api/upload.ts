@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import formidable, { File } from 'formidable';
+import formidable from 'formidable';
 import fs from 'fs/promises';
 import pdfParse from 'pdf-parse';
 import { openai } from '@ai-sdk/openai';
@@ -45,8 +45,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     let text = '';
-    let filename = file.originalFilename || 'unnamed';
-    let title = fields.title ? String(fields.title) : filename;
+    const filename = file.originalFilename || 'unnamed';
+    const title = fields.title ? String(fields.title) : filename;
     if (file.mimetype === 'application/pdf') {
       const dataBuffer = await fs.readFile(file.filepath);
       const pdfData = await pdfParse(dataBuffer);

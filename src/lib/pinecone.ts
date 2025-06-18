@@ -1,5 +1,5 @@
 // src/lib/pinecone.ts
-import { Pinecone, PineconeRecord } from '@pinecone-database/pinecone';
+import { Pinecone } from '@pinecone-database/pinecone';
 
 const pinecone = new Pinecone({
   apiKey: process.env.PINECONE_API_KEY!,

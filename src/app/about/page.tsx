@@ -8,7 +8,10 @@ import { motion } from "framer-motion";
 type Tween = gsap.core.Tween;
 
 export default function AboutPage() {
-  const { theme, gradientColors } = useTheme();
+  const themeContext = useTheme();
+  const themeValue = themeContext.theme;
+  const colors = themeContext.gradientColors;
+
   const bgRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const tweenRef = useRef<Tween | null>(null);
@@ -19,7 +22,7 @@ export default function AboutPage() {
     tweenRef.current?.kill();
 
     // Set up the dynamic gradient background
-    bgRef.current.style.background = `linear-gradient(135deg, ${gradientColors.join(
+    bgRef.current.style.background = `linear-gradient(135deg, ${colors.join(
       ", "
     )})`;
     bgRef.current.style.backgroundSize = "400% 400%";
@@ -38,7 +41,7 @@ export default function AboutPage() {
     return () => {
       tweenRef.current?.kill();
     };
-  }, [gradientColors]);
+  }, [colors]);
 
   useEffect(() => {
     if (contentRef.current) {
@@ -53,7 +56,7 @@ export default function AboutPage() {
  return (
   <div
     className={`relative flex flex-col items-center justify-center px-6 py-16 min-h-screen text-center overflow-hidden ${
-      theme === "light" ? "text-gray-800" : "text-gray-100"
+      themeValue === "light" ? "text-gray-800" : "text-gray-100"
     }`}
   >
     <div ref={bgRef} className="absolute inset-0 -z-10 rounded-lg" />
@@ -69,7 +72,7 @@ export default function AboutPage() {
       >
         <h1 className="text-4xl font-bold">About Me</h1>
         <p className="text-lg">
-          I'm Gokul Kiran — a self-taught full stack developer with a passion for building fast, scalable, and modern web applications.  
+          I am Gokul Kiran — a self-taught full stack developer with a passion for building fast, scalable, and modern web applications.  
         </p>
         <p className="text-lg">
           I innovate, build, and scale fullstack, cloud, and AI solutions. Your vision, my code. I transform your ideas into reality.
