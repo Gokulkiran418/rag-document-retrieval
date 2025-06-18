@@ -31,7 +31,7 @@ export default function AboutPage() {
     // Animate it
     tweenRef.current = gsap.to(bgRef.current, {
       backgroundPosition: "200% 200%",
-      duration: 15,
+      duration: 8,
       repeat: -1,
       yoyo: true,
       ease: "sine.inOut",

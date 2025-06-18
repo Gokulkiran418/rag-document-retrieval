@@ -83,7 +83,7 @@ export default function RagPage() {
 
     tweenRef.current = gsap.to(bgRef.current, {
       backgroundPosition: "200% 200%",
-      duration: 10,
+      duration: 8,
       repeat: -1,
       yoyo: true,
       ease: "sine.inOut",
