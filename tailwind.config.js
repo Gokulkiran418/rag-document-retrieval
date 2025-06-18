@@ -20,6 +20,7 @@ module.exports = {
           light: '#E4F9F5',
           dark: '#222831',
         },
+        'card-glass-dark': 'rgba(10, 38, 71, 0.6)', 
         'text-light': '#111827',
         'text-dark': '#E5E7EB', // Lighter text for dark mode contrast
       },
