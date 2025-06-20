@@ -235,7 +235,7 @@ export default function RagPage() {
           RAG Knowledge Base
         </h1>
         <p className="text-center text-sm text-gray-600 dark:text-gray-400 italic">
-        (Yes, this is part of my portfolio to land a job 😄 — everything’s limited because I’m using free-tier tech. Use it wisely!)
+        (Yes, this is for my portfolio to land a job 😄 — everything’s limited because I’m using free-tier tech. Use it wisely!)
       </p>
 
         {/* Upload + Query Side-by-Side Container */}

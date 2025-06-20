@@ -67,7 +67,7 @@ export default function AboutPage() {
       <motion.div
         initial={{ opacity: 0, y: -40 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1, ease: "easeOut" }}
+        transition={{ duration: 3, ease: "easeOut" }}
         className="p-6 bg-cardcolor-light dark:bg-card-glass-dark dark:backdrop-blur-md rounded-lg shadow-md space-y-4 text-text-light dark:text-white dark:border dark:border-[#1e2a3a]/60 dark:shadow-[0_0_12px_2px_rgba(149,1,1,0.2)]"
       >
         <h1 className="text-4xl font-bold">About Me</h1>
@@ -83,7 +83,7 @@ export default function AboutPage() {
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1, ease: "easeOut" }}
+        transition={{ duration: 3, ease: "easeOut" }}
         className="p-6 bg-cardcolor-light dark:bg-card-glass-dark dark:backdrop-blur-md rounded-lg shadow-md space-y-4 text-text-light dark:text-white dark:border dark:border-[#1e2a3a]/60 dark:shadow-[0_0_12px_2px_rgba(149,1,1,0.2)]"
       >
         <h2 className="text-2xl font-semibold">Contact Info</h2>
