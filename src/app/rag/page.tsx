@@ -1,11 +1,7 @@
+// src/app/rag/page.tsx
 "use client";
 
-import {
-  useState,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-} from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useTheme } from "../../context/ThemeContext";
@@ -15,7 +11,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 // Cost-control constants
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
-const MAX_QUERIES_PER_DAY = 5;
+const MAX_QUERIES_PER_DAY = 7;
 
 export default function RagPage() {
   const { gradientColors } = useTheme();
@@ -36,9 +32,13 @@ export default function RagPage() {
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isQuerying, setIsQuerying] = useState(false);
-
-  // daily query count
   const [dailyQueryCount, setDailyQueryCount] = useState(0);
+
+  const bgRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const spinnerRef = useRef<HTMLDivElement>(null);
+  const progressBarRef = useRef<HTMLDivElement>(null);
+  const tweenRef = useRef<Tween | null>(null);
 
   // Load daily query count from localStorage
   useEffect(() => {
@@ -65,19 +65,12 @@ export default function RagPage() {
     );
   }, [dailyQueryCount]);
 
-  const bgRef = useRef<HTMLDivElement>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const spinnerRef = useRef<HTMLDivElement>(null);
-  const progressBarRef = useRef<HTMLDivElement>(null);
-  const tweenRef = useRef<Tween | null>(null);
-
+  // Background gradient animation
   useEffect(() => {
     if (!bgRef.current) return;
     tweenRef.current?.kill();
 
-    bgRef.current.style.background = `linear-gradient(135deg, ${gradientColors.join(
-      ", "
-    )})`;
+    bgRef.current.style.background = `linear-gradient(135deg, ${gradientColors.join(", ")})`;
     bgRef.current.style.backgroundSize = "200% 200%";
     bgRef.current.style.backgroundPosition = "0% 0%";
 
@@ -96,16 +89,17 @@ export default function RagPage() {
     };
   }, [gradientColors]);
 
+  // Card animations
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
       if (cardRef.current) {
         gsap.fromTo(
           cardRef.current.children,
-          { opacity: 0, x: -50 },
+          { opacity: 0, x: (index) => (index === 2 ? 50 : -50) }, // Slide query types card from right
           {
             opacity: 1,
             x: 0,
-            duration: 1,
+            duration: 2,
             stagger: 0.3,
             ease: "power2.out",
             scrollTrigger: {
@@ -122,6 +116,7 @@ export default function RagPage() {
     return () => ctx.revert();
   }, []);
 
+  // Spinner animation (remove Tailwind animate-spin to avoid conflict)
   useEffect(() => {
     if ((isUploading || isQuerying) && spinnerRef.current) {
       gsap.to(spinnerRef.current, {
@@ -185,9 +180,7 @@ export default function RagPage() {
       return;
     }
     if (dailyQueryCount >= MAX_QUERIES_PER_DAY) {
-      setError(
-        `Daily query limit reached (${MAX_QUERIES_PER_DAY}). Try again tomorrow.`
-      );
+      setError(`Daily query limit reached (${MAX_QUERIES_PER_DAY}). Try again tomorrow.`);
       return;
     }
     setError(null);
@@ -224,25 +217,20 @@ export default function RagPage() {
 
   return (
     <div className="relative p-6 lg:p-8 min-h-screen overflow-hidden">
-      <div
-        ref={bgRef}
-        className="absolute inset-0 rounded-lg"
-        style={{ zIndex: -1 }}
-      />
+      <div ref={bgRef} className="absolute inset-0 rounded-lg" style={{ zIndex: -1 }} />
 
       <div ref={cardRef} className="relative z-10 max-w-6xl mx-auto space-y-8">
         <h1 className="text-4xl font-bold dark:text-white text-center">
           RAG Knowledge Base
         </h1>
         <p className="text-center text-sm text-gray-600 dark:text-gray-400 italic">
-        (Yes, this is for my portfolio to land a job 😄 — everything’s limited because I’m using free-tier tech. Use it wisely!)
-      </p>
+          (Yes, this is for my portfolio to land a job 😄 — everything’s limited because I’m using free-tier tech. Use it wisely!)
+        </p>
 
         {/* Upload + Query Side-by-Side Container */}
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Upload Section */}
           <section className="flex-1 p-6 rounded-lg shadow-md bg-cardcolor-light/10 dark:bg-cardcolor-dark/10 space-y-4 text-text-light dark:text-text-dark">
-
             <h2 className="text-xl font-semibold">Upload Document</h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Max file size: {Math.floor(MAX_FILE_SIZE / (1024 * 1024))} MB
@@ -269,16 +257,15 @@ export default function RagPage() {
               >
                 {isUploading ? "Uploading..." : "Upload"}
               </button>
-
               {isUploading && (
                 <div className="flex justify-center mt-4">
                   <div
-                    className="w-8 h-8 border-4 border-t-blue-500 border-gray-300 rounded-full animate-spin"
+                    ref={spinnerRef}
+                    className="w-8 h-8 border-4 border-t-blue-500 border-gray-300 rounded-full"
                   />
                 </div>
               )}
             </form>
-
             {uploadResponse && (
               <div className="mt-4 p-4 bg-green-100 border border-green-500 rounded-md text-black">
                 <p>
@@ -295,12 +282,12 @@ export default function RagPage() {
           {/* Query Section */}
           <section className="flex-1 p-6 rounded-lg shadow-md bg-cardcolor-light/10 dark:bg-cardcolor-dark/10 space-y-4 text-text-light dark:text-text-dark">
             <h2 className="text-xl font-semibold">Ask a Question</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Daily queries allowed: {MAX_QUERIES_PER_DAY}
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {MAX_QUERIES_PER_DAY - dailyQueryCount} queries left today
-              </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Daily queries allowed: {MAX_QUERIES_PER_DAY}
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {MAX_QUERIES_PER_DAY - dailyQueryCount} queries left today
+            </p>
             <form onSubmit={handleQuery} className="space-y-4">
               <input
                 type="text"
@@ -316,14 +303,15 @@ export default function RagPage() {
               >
                 {isQuerying ? "Querying..." : "Query"}
               </button>
-
               {isQuerying && (
                 <div className="flex justify-center mt-4">
-                  <div className="w-8 h-8 border-4 border-t-blue-500 border-gray-300 rounded-full animate-spin" />
+                  <div
+                    ref={spinnerRef}
+                    className="w-8 h-8 border-4 border-t-blue-500 border-gray-300 rounded-full"
+                  />
                 </div>
               )}
             </form>
-
             {queryResponse && (
               <div className="response-section mt-4 p-4 bg-green-100 border border-green-500 rounded-md text-black">
                 <h3 className="text-lg font-semibold">Answer</h3>
@@ -340,6 +328,24 @@ export default function RagPage() {
             )}
           </section>
         </div>
+
+        {/* New Query Types Card */}
+        <section className="p-6 rounded-lg shadow-md bg-cardcolor-light/10 dark:bg-cardcolor-dark/10 space-y-4 text-text-light dark:text-text-dark">
+          <h2 className="text-xl font-semibold">What Can You Ask?</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Explore your uploaded documents with a variety of questions to gain insights and answers.
+          </p>
+          <ul className="list-disc pl-5 space-y-2">
+            <li><strong>Summaries:</strong> Ask for a summary of a document (e.g., “Summarize the main points of the report”).</li>
+            <li><strong>Facts:</strong> Find specific details (e.g., “What are the financial projections in the PDF?”).</li>
+            <li><strong>Analysis:</strong> Request explanations (e.g., “Explain the AI methodology in the paper”).</li>
+            <li><strong>Topics:</strong> Search by topic (e.g., “What does the content say about machine learning?”).</li>
+            <li><strong>Sentiment:</strong> Check document tone (e.g., “Is the article’s sentiment positive?”).</li>
+          </ul>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Note: Keep queries concise and relevant to uploaded content. You’re limited to {MAX_QUERIES_PER_DAY} queries per day.
+          </p>
+        </section>
 
         {error && (
           <div className="p-4 bg-red-100 border border-red-500 rounded-md">
