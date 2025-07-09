@@ -8,21 +8,21 @@ const pinecone = new Pinecone({
 const indexName = process.env.PINECONE_INDEX_NAME!;
 
 export async function storeEmbedding(
-  documentId: string,
+  vectorId: string,
   text: string,
   embedding: number[],
-  metadata: { title: string; filename: string }
+  metadata: { documentId: string; title: string; filename: string; text: string }
 ) {
   const index = pinecone.index(indexName);
   try {
     await index.upsert([
       {
-        id: documentId,
+        id: vectorId,
         values: embedding,
-        metadata: { ...metadata, text },
+        metadata: { ...metadata },
       },
     ]);
-    console.log(`Stored embedding for document ${documentId}`);
+    console.log(`Stored embedding for vector ${vectorId}`);
   } catch (error) {
     console.error('Error storing embedding:', error);
     throw new Error('Failed to store embedding');

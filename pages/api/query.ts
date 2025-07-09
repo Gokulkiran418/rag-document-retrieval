@@ -21,13 +21,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { query } = req.body;
+  const { query, documentId } = req.body;
   if (!query || typeof query !== 'string') {
     return res.status(400).json({ error: 'Query is required and must be a string' });
   }
+  if (!documentId || typeof documentId !== 'string') {
+    return res.status(400).json({ error: 'Document ID is required and must be a string' });
+  }
 
   try {
-    // Configure LlamaIndex Settings with custom LLM and embedModel
+    //console.log('Query:', query);
+    //console.log('Received documentId:', documentId);
+
+    // Configure LlamaIndex Settings
     Settings.llm = new (class extends BaseLLM {
       get metadata(): LLMMetadata {
         return {
@@ -73,7 +79,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     })();
 
-    // Set the embedding model for LlamaIndex
     Settings.embedModel = new OpenAIEmbedding({ model: 'text-embedding-3-large' });
 
     // Generate embedding for the query
@@ -82,25 +87,62 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       value: query,
     });
 
-    // Retrieve relevant chunks from Pinecone
+    // Retrieve chunks from Pinecone
     const pineconeIndex = getIndex();
-    const queryResponse = await pineconeIndex.query({
+    let queryResponse = await pineconeIndex.query({
       vector: embedding,
       topK: 3,
       includeMetadata: true,
+      filter: { documentId: { $eq: documentId } },
     });
 
-    // Log Pinecone query response
-    console.log('Pinecone query response:', JSON.stringify(queryResponse, null, 2));
+    // Log full response
+    //console.log('Pinecone query response (documentId filter):', JSON.stringify(queryResponse, null, 2));
+    console.log('Matches (documentId filter):', queryResponse.matches?.map(match => ({
+      id: match.id,
+      score: match.score,
+      metadata: match.metadata,
+    })) || []);
 
-    // Check if matches exist
+    // If no matches, try alternative filter key (docId)
     if (!queryResponse.matches || queryResponse.matches.length === 0) {
-      return res.status(404).json({ error: 'No relevant documents found in Pinecone' });
+      console.log('No matches with documentId filter, trying docId filter...');
+      queryResponse = await pineconeIndex.query({
+        vector: embedding,
+        topK: 3,
+        includeMetadata: true,
+        filter: { docId: { $eq: documentId } },
+      });
+      //console.log('Pinecone query response (docId filter):', JSON.stringify(queryResponse, null, 2));
+      console.log('Matches (docId filter):', queryResponse.matches?.map(match => ({
+        id: match.id,
+        score: match.score,
+        metadata: match.metadata,
+      })) || []);
+    }
+
+    // Fallback query without filter
+    if (!queryResponse.matches || queryResponse.matches.length === 0) {
+     // console.log('No matches with docId filter, running fallback query...');
+      const fallbackResponse = await pineconeIndex.query({
+        vector: embedding,
+        topK: 3,
+        includeMetadata: true,
+      });
+      //console.log('Fallback Pinecone response (no filter):', JSON.stringify(fallbackResponse, null, 2));
+      console.log('Fallback matches:', fallbackResponse.matches?.map(match => ({
+        id: match.id,
+        score: match.score,
+        metadata: match.metadata,
+      })) || []);
+      return res.status(404).json({
+        error: `No relevant documents found for document ID: ${documentId}. Fallback query found ${fallbackResponse.matches?.length || 0} matches. Metadata keys found: ${JSON.stringify(fallbackResponse.matches?.[0]?.metadata || {})}. Check Pinecone metadata for 'documentId' or 'docId'.`,
+      });
     }
 
     // Prepare documents for LlamaIndex
     const documents = queryResponse.matches.map((match) => {
-      const metadata = match.metadata as { title: string; filename: string; text: string };
+      const metadata = match.metadata as { title: string; filename: string; text: string; documentId?: string; docId?: string };
       if (!metadata.text) {
         console.error('Missing text in metadata:', metadata);
         throw new Error('Invalid document metadata: missing text');
@@ -111,15 +153,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     });
 
-    // Log documents
-    console.log('Documents for LlamaIndex:', documents.map(doc => ({ text: doc.text, metadata: doc.metadata })));
+   // console.log('Documents for LlamaIndex:', documents.map(doc => ({ text: doc.text, metadata: doc.metadata })));
 
     // Build index and query
     const index = await VectorStoreIndex.fromDocuments(documents);
     const queryEngine = index.asQueryEngine();
     const response = await queryEngine.query({ query });
 
-    // Format response with citations
+    // Format response
     const answer = response.toString();
     const sources = documents.map((doc) => ({
       title: doc.metadata.title,

@@ -16,6 +16,7 @@ const MAX_QUERIES_PER_DAY = 7;
 export default function RagPage() {
   const { gradientColors } = useTheme();
 
+  // State variables
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [query, setQuery] = useState("");
@@ -30,13 +31,18 @@ export default function RagPage() {
     sources: { title: string; filename: string }[];
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isQuerying, setIsQuerying] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [dailyQueryCount, setDailyQueryCount] = useState(0);
 
+  // Refs for animations
   const bgRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
-  const spinnerRef = useRef<HTMLDivElement>(null);
+  const uploadSpinnerRef = useRef<HTMLDivElement>(null);
+  const querySpinnerRef = useRef<HTMLDivElement>(null);
+  const deleteSpinnerRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
   const tweenRef = useRef<Tween | null>(null);
 
@@ -95,7 +101,7 @@ export default function RagPage() {
       if (cardRef.current) {
         gsap.fromTo(
           cardRef.current.children,
-          { opacity: 0, x: (index) => (index === 2 ? 50 : -50) }, // Slide query types card from right
+          { opacity: 0, x: (index) => (index === 2 ? 50 : -50) },
           {
             opacity: 1,
             x: 0,
@@ -116,23 +122,55 @@ export default function RagPage() {
     return () => ctx.revert();
   }, []);
 
-  // Spinner animation (remove Tailwind animate-spin to avoid conflict)
+  // Spinner animations for uploading
   useEffect(() => {
-    if ((isUploading || isQuerying) && spinnerRef.current) {
-      gsap.to(spinnerRef.current, {
+    if (isUploading && uploadSpinnerRef.current) {
+      gsap.to(uploadSpinnerRef.current, {
         rotation: 360,
         duration: 1,
         repeat: -1,
         ease: "linear",
       });
-    } else if (spinnerRef.current) {
-      gsap.killTweensOf(spinnerRef.current);
-      gsap.set(spinnerRef.current, { rotation: 0 });
+    } else if (uploadSpinnerRef.current) {
+      gsap.killTweensOf(uploadSpinnerRef.current);
+      gsap.set(uploadSpinnerRef.current, { rotation: 0 });
     }
-  }, [isUploading, isQuerying]);
+  }, [isUploading]);
 
+  // Spinner animations for querying
+  useEffect(() => {
+    if (isQuerying && querySpinnerRef.current) {
+      gsap.to(querySpinnerRef.current, {
+        rotation: 360,
+        duration: 1,
+        repeat: -1,
+        ease: "linear",
+      });
+    } else if (querySpinnerRef.current) {
+      gsap.killTweensOf(querySpinnerRef.current);
+      gsap.set(querySpinnerRef.current, { rotation: 0 });
+    }
+  }, [isQuerying]);
+
+  // Spinner animations for deleting
+  useEffect(() => {
+    if (isDeleting && deleteSpinnerRef.current) {
+      gsap.to(deleteSpinnerRef.current, {
+        rotation: 360,
+        duration: 1,
+        repeat: -1,
+        ease: "linear",
+      });
+    } else if (deleteSpinnerRef.current) {
+      gsap.killTweensOf(deleteSpinnerRef.current);
+      gsap.set(deleteSpinnerRef.current, { rotation: 0 });
+    }
+  }, [isDeleting]);
+
+  // Handle document upload
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSuccess(null); // Clear success message
     if (!file) {
       setError("Please select a file");
       return;
@@ -173,14 +211,20 @@ export default function RagPage() {
     }
   };
 
+  // Handle query submission
   const handleQuery = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSuccess(null); // Clear success message
     if (!query) {
       setError("Please enter a query");
       return;
     }
     if (dailyQueryCount >= MAX_QUERIES_PER_DAY) {
       setError(`Daily query limit reached (${MAX_QUERIES_PER_DAY}). Try again tomorrow.`);
+      return;
+    }
+    if (!uploadResponse?.documentId) {
+      setError("No document uploaded to query");
       return;
     }
     setError(null);
@@ -190,7 +234,7 @@ export default function RagPage() {
       const res = await fetch("/api/query", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, documentId: uploadResponse.documentId }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -212,6 +256,37 @@ export default function RagPage() {
       setError("Query failed");
     } finally {
       setIsQuerying(false);
+    }
+  };
+
+  // Handle document deletion
+  const handleDelete = async () => {
+    if (!uploadResponse?.documentId) {
+      setError("No document to delete");
+      return;
+    }
+    setIsDeleting(true);
+    setSuccess(null);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentId: uploadResponse.documentId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSuccess("Document deleted successfully");
+        setQueryResponse(null); // Clear response
+        setUploadResponse(null); // Clear upload response
+      } else {
+        setError(data.error || "Deletion failed");
+      }
+    } catch {
+      setError("Deletion failed");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -242,6 +317,7 @@ export default function RagPage() {
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Document Title"
                 className="w-full p-2 border rounded-md bg-white text-black dark:bg-zinc-800 dark:text-white dark:border-zinc-700"
+                required
               />
               <input
                 type="file"
@@ -260,7 +336,7 @@ export default function RagPage() {
               {isUploading && (
                 <div className="flex justify-center mt-4">
                   <div
-                    ref={spinnerRef}
+                    ref={uploadSpinnerRef}
                     className="w-8 h-8 border-4 border-t-blue-500 border-gray-300 rounded-full"
                   />
                 </div>
@@ -298,7 +374,7 @@ export default function RagPage() {
               />
               <button
                 type="submit"
-                disabled={isQuerying}
+                disabled={isQuerying || !uploadResponse}
                 className="w-full p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:bg-gray-400 dark:bg-blue-700 dark:hover:bg-blue-800"
               >
                 {isQuerying ? "Querying..." : "Query"}
@@ -306,7 +382,7 @@ export default function RagPage() {
               {isQuerying && (
                 <div className="flex justify-center mt-4">
                   <div
-                    ref={spinnerRef}
+                    ref={querySpinnerRef}
                     className="w-8 h-8 border-4 border-t-blue-500 border-gray-300 rounded-full"
                   />
                 </div>
@@ -328,8 +404,12 @@ export default function RagPage() {
             )}
           </section>
         </div>
-
-        {/* New Query Types Card */}
+          {error && (
+          <div className="p-4 bg-red-100 border border-red-500 rounded-md text-red-700">
+            <p>{error}</p>
+          </div>
+        )}
+        {/* Query Types Card */}
         <section className="p-6 rounded-lg shadow-md bg-cardcolor-light/10 dark:bg-cardcolor-dark/10 space-y-4 text-text-light dark:text-text-dark">
           <h2 className="text-xl font-semibold">What Can You Ask?</h2>
           <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -347,11 +427,13 @@ export default function RagPage() {
           </p>
         </section>
 
-        {error && (
-          <div className="p-4 bg-red-100 border border-red-500 rounded-md">
-            <p>{error}</p>
+        {/* Success and Error Messages */}
+        {success && (
+          <div className="p-4 bg-green-100 border border-green-500 rounded-md text-green-700">
+            <p>{success}</p>
           </div>
         )}
+       
       </div>
     </div>
   );
