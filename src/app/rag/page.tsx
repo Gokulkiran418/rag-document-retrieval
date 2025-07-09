@@ -259,37 +259,6 @@ export default function RagPage() {
     }
   };
 
-  // Handle document deletion
-  const handleDelete = async () => {
-    if (!uploadResponse?.documentId) {
-      setError("No document to delete");
-      return;
-    }
-    setIsDeleting(true);
-    setSuccess(null);
-    setError(null);
-
-    try {
-      const res = await fetch("/api/delete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ documentId: uploadResponse.documentId }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setSuccess("Document deleted successfully");
-        setQueryResponse(null); // Clear response
-        setUploadResponse(null); // Clear upload response
-      } else {
-        setError(data.error || "Deletion failed");
-      }
-    } catch {
-      setError("Deletion failed");
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
   return (
     <div className="relative p-6 lg:p-8 min-h-screen overflow-hidden">
       <div ref={bgRef} className="absolute inset-0 rounded-lg" style={{ zIndex: -1 }} />
