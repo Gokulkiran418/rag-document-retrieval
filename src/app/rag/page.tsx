@@ -353,7 +353,14 @@ export default function RagPage() {
             )}
           </section>
         </div>
-
+            
+        {/* Error Messages */}
+        {error && (
+          <div className="p-4 bg-red-100 border border-red-500 rounded-md text-red-700">
+            <p>{error}</p>
+          </div>
+        )}
+        
         {/* Query Types Card */}
         <section className="p-6 rounded-lg shadow-md bg-cardcolor-light/10 dark:bg-cardcolor-dark/10 space-y-4 text-text-light dark:text-text-dark">
           <h2 className="text-xl font-semibold">What Can You Ask?</h2>
@@ -372,12 +379,6 @@ export default function RagPage() {
           </p>
         </section>
 
-        {/* Error Messages */}
-        {error && (
-          <div className="p-4 bg-red-100 border border-red-500 rounded-md text-red-700">
-            <p>{error}</p>
-          </div>
-        )}
       </div>
     </div>
   );
