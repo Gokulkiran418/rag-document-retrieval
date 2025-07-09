@@ -31,10 +31,8 @@ export default function RagPage() {
     sources: { title: string; filename: string }[];
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isQuerying, setIsQuerying] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [dailyQueryCount, setDailyQueryCount] = useState(0);
 
   // Refs for animations
@@ -42,7 +40,6 @@ export default function RagPage() {
   const cardRef = useRef<HTMLDivElement>(null);
   const uploadSpinnerRef = useRef<HTMLDivElement>(null);
   const querySpinnerRef = useRef<HTMLDivElement>(null);
-  const deleteSpinnerRef = useRef<HTMLDivElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
   const tweenRef = useRef<Tween | null>(null);
 
@@ -152,25 +149,9 @@ export default function RagPage() {
     }
   }, [isQuerying]);
 
-  // Spinner animations for deleting
-  useEffect(() => {
-    if (isDeleting && deleteSpinnerRef.current) {
-      gsap.to(deleteSpinnerRef.current, {
-        rotation: 360,
-        duration: 1,
-        repeat: -1,
-        ease: "linear",
-      });
-    } else if (deleteSpinnerRef.current) {
-      gsap.killTweensOf(deleteSpinnerRef.current);
-      gsap.set(deleteSpinnerRef.current, { rotation: 0 });
-    }
-  }, [isDeleting]);
-
   // Handle document upload
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSuccess(null); // Clear success message
     if (!file) {
       setError("Please select a file");
       return;
@@ -214,7 +195,6 @@ export default function RagPage() {
   // Handle query submission
   const handleQuery = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSuccess(null); // Clear success message
     if (!query) {
       setError("Please enter a query");
       return;
@@ -373,11 +353,7 @@ export default function RagPage() {
             )}
           </section>
         </div>
-          {error && (
-          <div className="p-4 bg-red-100 border border-red-500 rounded-md text-red-700">
-            <p>{error}</p>
-          </div>
-        )}
+
         {/* Query Types Card */}
         <section className="p-6 rounded-lg shadow-md bg-cardcolor-light/10 dark:bg-cardcolor-dark/10 space-y-4 text-text-light dark:text-text-dark">
           <h2 className="text-xl font-semibold">What Can You Ask?</h2>
@@ -396,13 +372,12 @@ export default function RagPage() {
           </p>
         </section>
 
-        {/* Success and Error Messages */}
-        {success && (
-          <div className="p-4 bg-green-100 border border-green-500 rounded-md text-green-700">
-            <p>{success}</p>
+        {/* Error Messages */}
+        {error && (
+          <div className="p-4 bg-red-100 border border-red-500 rounded-md text-red-700">
+            <p>{error}</p>
           </div>
         )}
-       
       </div>
     </div>
   );
