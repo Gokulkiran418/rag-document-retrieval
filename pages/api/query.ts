@@ -30,8 +30,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    //console.log('Query:', query);
-    //console.log('Received documentId:', documentId);
+    console.log('Query:', query);
+    console.log('Received documentId:', documentId);
 
     // Configure LlamaIndex Settings
     Settings.llm = new (class extends BaseLLM {
@@ -89,6 +89,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Retrieve chunks from Pinecone
     const pineconeIndex = getIndex();
+    console.log('Using Pinecone namespace:', process.env.PINECONE_NAMESPACE || 'default');
     let queryResponse = await pineconeIndex.query({
       vector: embedding,
       topK: 3,
@@ -96,53 +97,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       filter: { documentId: { $eq: documentId } },
     });
 
-    // Log full response
-    //console.log('Pinecone query response (documentId filter):', JSON.stringify(queryResponse, null, 2));
-    console.log('Matches (documentId filter):', queryResponse.matches?.map(match => ({
-      id: match.id,
-      score: match.score,
-      metadata: match.metadata,
-    })) || []);
+    console.log('Pinecone query response (documentId filter):', {
+      matches: queryResponse.matches?.map(match => ({
+        id: match.id,
+        score: match.score,
+        metadata: match.metadata,
+      })) || [],
+    });
 
-    // If no matches, try alternative filter key (docId)
+    // Retry once after 2 seconds if no matches
     if (!queryResponse.matches || queryResponse.matches.length === 0) {
-      console.log('No matches with documentId filter, trying docId filter...');
+      console.log('No matches found, retrying after 2 seconds...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
       queryResponse = await pineconeIndex.query({
         vector: embedding,
         topK: 3,
         includeMetadata: true,
-        filter: { docId: { $eq: documentId } },
+        filter: { documentId: { $eq: documentId } },
       });
-      //console.log('Pinecone query response (docId filter):', JSON.stringify(queryResponse, null, 2));
-      console.log('Matches (docId filter):', queryResponse.matches?.map(match => ({
-        id: match.id,
-        score: match.score,
-        metadata: match.metadata,
-      })) || []);
+      console.log('Pinecone retry response (documentId filter):', {
+        matches: queryResponse.matches?.map(match => ({
+          id: match.id,
+          score: match.score,
+          metadata: match.metadata,
+        })) || [],
+      });
     }
 
-    // Fallback query without filter
+    // Check if no matches found after retry
     if (!queryResponse.matches || queryResponse.matches.length === 0) {
-     // console.log('No matches with docId filter, running fallback query...');
-      const fallbackResponse = await pineconeIndex.query({
-        vector: embedding,
-        topK: 3,
-        includeMetadata: true,
-      });
-      //console.log('Fallback Pinecone response (no filter):', JSON.stringify(fallbackResponse, null, 2));
-      console.log('Fallback matches:', fallbackResponse.matches?.map(match => ({
-        id: match.id,
-        score: match.score,
-        metadata: match.metadata,
-      })) || []);
       return res.status(404).json({
-        error: `No relevant documents found for document ID: ${documentId}. Fallback query found ${fallbackResponse.matches?.length || 0} matches. Metadata keys found: ${JSON.stringify(fallbackResponse.matches?.[0]?.metadata || {})}. Check Pinecone metadata for 'documentId' or 'docId'.`,
+        error: `No relevant documents found for document ID: ${documentId}`,
+        details: 'The document may still be processing in Pinecone. Please try querying again in a few seconds.',
       });
     }
 
     // Prepare documents for LlamaIndex
     const documents = queryResponse.matches.map((match) => {
-      const metadata = match.metadata as { title: string; filename: string; text: string; documentId?: string; docId?: string };
+      const metadata = match.metadata as { title: string; filename: string; text: string; documentId?: string };
       if (!metadata.text) {
         console.error('Missing text in metadata:', metadata);
         throw new Error('Invalid document metadata: missing text');
@@ -153,7 +145,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     });
 
-   // console.log('Documents for LlamaIndex:', documents.map(doc => ({ text: doc.text, metadata: doc.metadata })));
+    console.log('Documents for LlamaIndex:', documents.map(doc => ({ text: doc.text, metadata: doc.metadata })));
 
     // Build index and query
     const index = await VectorStoreIndex.fromDocuments(documents);
