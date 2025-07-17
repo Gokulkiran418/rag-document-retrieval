@@ -5,6 +5,10 @@ import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useTheme } from "../../context/ThemeContext";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 type Tween = gsap.core.Tween;
 gsap.registerPlugin(ScrollTrigger);
@@ -25,6 +29,7 @@ export default function RagPage() {
     documentId: string;
     chunkCount: number;
     filename: string;
+    indexingHint?: string;
   } | null>(null);
   const [queryResponse, setQueryResponse] = useState<{
     answer: string;
@@ -34,6 +39,7 @@ export default function RagPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [isQuerying, setIsQuerying] = useState(false);
   const [dailyQueryCount, setDailyQueryCount] = useState(0);
+  const [isUploadProcessing, setIsUploadProcessing] = useState(false);
 
   // Refs for animations
   const bgRef = useRef<HTMLDivElement>(null);
@@ -43,12 +49,12 @@ export default function RagPage() {
   const progressBarRef = useRef<HTMLDivElement>(null);
   const tweenRef = useRef<Tween | null>(null);
 
-  // Load daily query count from localStorage
+  // Load daily query count and uploadResponse from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem("rag-query-count");
-    if (saved) {
+    const savedQueryCount = localStorage.getItem("rag-query-count");
+    if (savedQueryCount) {
       try {
-        const { date, count } = JSON.parse(saved);
+        const { date, count } = JSON.parse(savedQueryCount);
         const today = new Date().toDateString();
         if (date === today) {
           setDailyQueryCount(count);
@@ -57,9 +63,16 @@ export default function RagPage() {
         }
       } catch {}
     }
+
+    const savedUploadResponse = localStorage.getItem("rag-upload-response");
+    if (savedUploadResponse) {
+      try {
+        setUploadResponse(JSON.parse(savedUploadResponse));
+      } catch {}
+    }
   }, []);
 
-  // Save daily count whenever it changes
+  // Save daily count and uploadResponse whenever they change
   useEffect(() => {
     const today = new Date().toDateString();
     localStorage.setItem(
@@ -67,6 +80,14 @@ export default function RagPage() {
       JSON.stringify({ date: today, count: dailyQueryCount })
     );
   }, [dailyQueryCount]);
+
+  useEffect(() => {
+    if (uploadResponse) {
+      localStorage.setItem("rag-upload-response", JSON.stringify(uploadResponse));
+    } else {
+      localStorage.removeItem("rag-upload-response");
+    }
+  }, [uploadResponse]);
 
   // Background gradient animation
   useEffect(() => {
@@ -162,6 +183,10 @@ export default function RagPage() {
     }
     setError(null);
     setIsUploading(true);
+    setIsUploadProcessing(true);
+
+    // Clear previous upload response
+    localStorage.removeItem("rag-upload-response");
 
     const formData = new FormData();
     formData.append("file", file);
@@ -182,11 +207,17 @@ export default function RagPage() {
             gsap.to(progressBarRef.current!, { width: 0, duration: 0.3 });
           },
         });
+        // Wait 5 seconds for Pinecone indexing
+        setTimeout(() => {
+          setIsUploadProcessing(false);
+        }, 5000);
       } else {
         setError(data.error || "Upload failed");
+        setIsUploadProcessing(false);
       }
     } catch {
       setError("Upload failed");
+      setIsUploadProcessing(false);
     } finally {
       setIsUploading(false);
     }
@@ -205,6 +236,10 @@ export default function RagPage() {
     }
     if (!uploadResponse?.documentId) {
       setError("No document uploaded to query");
+      return;
+    }
+    if (isUploadProcessing) {
+      setError("Document is still processing. Please wait a few seconds.");
       return;
     }
     setError(null);
@@ -230,13 +265,59 @@ export default function RagPage() {
           );
         }
       } else {
-        setError(data.error || "Query failed");
+        setError(`${data.error}: ${data.details || "No additional details"}`);
       }
     } catch {
-      setError("Query failed");
+      setError("Query failed: Network or server error");
     } finally {
       setIsQuerying(false);
     }
+  };
+
+  // Custom Markdown components for structured rendering
+  const markdownComponents = {
+    h1: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
+      <h1 className="text-2xl font-bold mt-4 mb-2 text-black dark:text-black" {...props} />
+    ),
+    h2: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
+      <h2 className="text-xl font-semibold mt-3 mb-2 text-black dark:text-black" {...props} />
+    ),
+    p: (props: React.HTMLAttributes<HTMLParagraphElement>) => (
+      <p className="mt-2 mb-2 text-black dark:text-black" {...props} />
+    ),
+    ul: (props: React.HTMLAttributes<HTMLUListElement>) => (
+      <ul className="list-disc pl-6 mt-2 mb-2 text-black dark:text-black" {...props} />
+    ),
+    li: (props: React.LiHTMLAttributes<HTMLLIElement>) => (
+      <li className="mb-1" {...props} />
+    ),
+    strong: (props: React.HTMLAttributes<HTMLElement>) => (
+      <strong className="font-bold text-black dark:text-black" {...props} />
+    ),
+    code({ node, inline, className, children, ...props }: any) {
+      const match = /language-(\w+)/.exec(className || "");
+      return !inline && match ? (
+        <SyntaxHighlighter
+          language={match[1]}
+          style={oneDark}
+          PreTag="div"
+          className="rounded-md my-2 text-sm"
+          customStyle={{ background: "transparent" }}
+          {...props}
+        >
+          {String(children).replace(/\n$/, "")}
+        </SyntaxHighlighter>
+      ) : (
+        <code
+          className={`bg-gray-200 dark:bg-zinc-800 px-1 py-0.5 rounded text-sm font-mono ${
+            className || ""
+          }`}
+          {...props}
+        >
+          {children}
+        </code>
+      );
+    },
   };
 
   return (
@@ -300,6 +381,9 @@ export default function RagPage() {
                   <br />
                   Chunks: {uploadResponse.chunkCount}
                 </p>
+                {uploadResponse.indexingHint && (
+                  <p className="text-sm text-gray-600 mt-2">{uploadResponse.indexingHint}</p>
+                )}
               </div>
             )}
           </section>
@@ -323,10 +407,10 @@ export default function RagPage() {
               />
               <button
                 type="submit"
-                disabled={isQuerying || !uploadResponse}
+                disabled={isQuerying || !uploadResponse || isUploadProcessing}
                 className="w-full p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:bg-gray-400 dark:bg-blue-700 dark:hover:bg-blue-800"
               >
-                {isQuerying ? "Querying..." : "Query"}
+                {isQuerying ? "Querying..." : isUploadProcessing ? "Just a moment until pinecone is ready..." : "Query"}
               </button>
               {isQuerying && (
                 <div className="flex justify-center mt-4">
@@ -340,7 +424,9 @@ export default function RagPage() {
             {queryResponse && (
               <div className="response-section mt-4 p-4 bg-green-100 border border-green-500 rounded-md text-black">
                 <h3 className="text-lg font-semibold">Answer</h3>
-                <p>{queryResponse.answer}</p>
+                <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]}>
+                  {queryResponse.answer}
+                </ReactMarkdown>
                 <h3 className="text-lg font-semibold mt-4">Sources</h3>
                 <ul className="list-disc pl-5 mt-2">
                   {queryResponse.sources.map((s, i) => (
@@ -353,14 +439,14 @@ export default function RagPage() {
             )}
           </section>
         </div>
-            
+
         {/* Error Messages */}
         {error && (
           <div className="p-4 bg-red-100 border border-red-500 rounded-md text-red-700">
             <p>{error}</p>
           </div>
         )}
-        
+
         {/* Query Types Card */}
         <section className="p-6 rounded-lg shadow-md bg-cardcolor-light/10 dark:bg-cardcolor-dark/10 space-y-4 text-text-light dark:text-text-dark">
           <h2 className="text-xl font-semibold">What Can You Ask?</h2>
@@ -368,7 +454,7 @@ export default function RagPage() {
             Explore your uploaded documents with a variety of questions to gain insights and answers.
           </p>
           <ul className="list-disc pl-5 space-y-2">
-            <li><strong>Summaries:</strong> Ask for a summary of a document (e.g., “Summarize the main points of the report”).</li>
+            <li><strong>Summaries:</strong> Ask for a summary of a document (e.g., “Summarize”).</li>
             <li><strong>Facts:</strong> Find specific details (e.g., “What are the financial projections in the PDF?”).</li>
             <li><strong>Analysis:</strong> Request explanations (e.g., “Explain the AI methodology in the paper”).</li>
             <li><strong>Topics:</strong> Search by topic (e.g., “What does the content say about machine learning?”).</li>
@@ -378,7 +464,6 @@ export default function RagPage() {
             Note: Keep queries concise and relevant to uploaded content. You’re limited to {MAX_QUERIES_PER_DAY} queries per day.
           </p>
         </section>
-
       </div>
     </div>
   );
