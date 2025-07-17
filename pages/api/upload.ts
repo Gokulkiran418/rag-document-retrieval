@@ -75,6 +75,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     // Generate and store embeddings for each chunk
+    console.log('Storing embeddings in Pinecone namespace:', process.env.PINECONE_NAMESPACE || 'default');
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
       const { embedding } = await embed({
@@ -96,9 +97,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       documentId,
       chunkCount: chunks.length,
       filename,
+      indexingHint: 'Vectors may take a few seconds to be queryable in Pinecone',
     });
   } catch (error) {
     console.error('Upload error:', error);
-    res.status(500).json({ error: 'Failed to process file or store data' });
+    res.status(500).json({ error: 'Failed to process file or store data', details: (error as Error).message });
   }
 }
