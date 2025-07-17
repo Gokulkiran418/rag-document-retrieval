@@ -15,6 +15,7 @@ export async function storeEmbedding(
 ) {
   const index = pinecone.index(indexName);
   try {
+    console.log(`Storing embedding for vector ${vectorId} in index ${indexName} (namespace: default) with metadata:`, metadata);
     await index.upsert([
       {
         id: vectorId,
@@ -22,7 +23,7 @@ export async function storeEmbedding(
         metadata: { ...metadata },
       },
     ]);
-    console.log(`Stored embedding for vector ${vectorId}`);
+    console.log(`Successfully stored embedding for vector ${vectorId}`);
   } catch (error) {
     console.error('Error storing embedding:', error);
     throw new Error('Failed to store embedding');
@@ -30,5 +31,6 @@ export async function storeEmbedding(
 }
 
 export function getIndex() {
+  console.log(`Accessing Pinecone index ${indexName} (namespace: default)`);
   return pinecone.index(indexName);
 }
