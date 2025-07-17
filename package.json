@@ -27,7 +27,10 @@
     "pdf-parse": "^1.1.1",
     "react": "^19.1.0",
     "react-chartjs-2": "^5.3.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-markdown": "^10.1.0",
+    "react-syntax-highlighter": "^15.6.1",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -38,6 +41,7 @@
     "@types/pdf-parse": "^1.1.5",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19",
+    "@types/react-syntax-highlighter": "^15.5.13",
     "autoprefixer": "^10.4.21",
     "drizzle-kit": "^0.31.1",
     "eslint": "^9",
