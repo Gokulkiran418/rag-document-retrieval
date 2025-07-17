@@ -5,10 +5,10 @@ import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useTheme } from "../../context/ThemeContext";
+import { markdownComponents } from "@/components/Markdown";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+
 
 type Tween = gsap.core.Tween;
 gsap.registerPlugin(ScrollTrigger);
@@ -210,7 +210,7 @@ export default function RagPage() {
         // Wait 5 seconds for Pinecone indexing
         setTimeout(() => {
           setIsUploadProcessing(false);
-        }, 5000);
+        }, 7000);
       } else {
         setError(data.error || "Upload failed");
         setIsUploadProcessing(false);
@@ -275,51 +275,7 @@ export default function RagPage() {
   };
 
   // Custom Markdown components for structured rendering
-  const markdownComponents = {
-    h1: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
-      <h1 className="text-2xl font-bold mt-4 mb-2 text-black dark:text-black" {...props} />
-    ),
-    h2: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
-      <h2 className="text-xl font-semibold mt-3 mb-2 text-black dark:text-black" {...props} />
-    ),
-    p: (props: React.HTMLAttributes<HTMLParagraphElement>) => (
-      <p className="mt-2 mb-2 text-black dark:text-black" {...props} />
-    ),
-    ul: (props: React.HTMLAttributes<HTMLUListElement>) => (
-      <ul className="list-disc pl-6 mt-2 mb-2 text-black dark:text-black" {...props} />
-    ),
-    li: (props: React.LiHTMLAttributes<HTMLLIElement>) => (
-      <li className="mb-1" {...props} />
-    ),
-    strong: (props: React.HTMLAttributes<HTMLElement>) => (
-      <strong className="font-bold text-black dark:text-black" {...props} />
-    ),
-    code({ node, inline, className, children, ...props }: any) {
-      const match = /language-(\w+)/.exec(className || "");
-      return !inline && match ? (
-        <SyntaxHighlighter
-          language={match[1]}
-          style={oneDark}
-          PreTag="div"
-          className="rounded-md my-2 text-sm"
-          customStyle={{ background: "transparent" }}
-          {...props}
-        >
-          {String(children).replace(/\n$/, "")}
-        </SyntaxHighlighter>
-      ) : (
-        <code
-          className={`bg-gray-200 dark:bg-zinc-800 px-1 py-0.5 rounded text-sm font-mono ${
-            className || ""
-          }`}
-          {...props}
-        >
-          {children}
-        </code>
-      );
-    },
-  };
-
+  
   return (
     <div className="relative p-6 lg:p-8 min-h-screen overflow-hidden">
       <div ref={bgRef} className="absolute inset-0 rounded-lg" style={{ zIndex: -1 }} />
@@ -405,13 +361,21 @@ export default function RagPage() {
                 placeholder="e.g., What is the summary?"
                 className="w-full p-2 border rounded-md bg-white text-black dark:bg-zinc-800 dark:text-white dark:border-zinc-700"
               />
-              <button
-                type="submit"
-                disabled={isQuerying || !uploadResponse || isUploadProcessing}
-                className="w-full p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:bg-gray-400 dark:bg-blue-700 dark:hover:bg-blue-800"
-              >
-                {isQuerying ? "Querying..." : isUploadProcessing ? "Just a moment until pinecone is ready..." : "Query"}
-              </button>
+             <button
+              type="submit"
+              disabled={isQuerying || !uploadResponse || isUploadProcessing}
+              className={`w-full p-2 text-white rounded-md
+                ${isQuerying || isUploadProcessing || !uploadResponse
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800'
+                }`}
+            >
+              {isQuerying
+                ? "Querying..."
+                : isUploadProcessing
+                ? "Just a moment until Pinecone is ready..."
+                : "Query"}
+            </button>
               {isQuerying && (
                 <div className="flex justify-center mt-4">
                   <div
@@ -424,9 +388,13 @@ export default function RagPage() {
             {queryResponse && (
               <div className="response-section mt-4 p-4 bg-green-100 border border-green-500 rounded-md text-black">
                 <h3 className="text-lg font-semibold">Answer</h3>
-                <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]}>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={markdownComponents}
+                >
                   {queryResponse.answer}
                 </ReactMarkdown>
+
                 <h3 className="text-lg font-semibold mt-4">Sources</h3>
                 <ul className="list-disc pl-5 mt-2">
                   {queryResponse.sources.map((s, i) => (
